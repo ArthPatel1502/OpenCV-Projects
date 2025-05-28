@@ -1,5 +1,4 @@
-import cv2
-import mediapipe as mp
+
 
 m = mp.solutions.hands
 d = mp.solutions.drawing_utils
@@ -62,4 +61,6 @@ while True:
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
+c.release()
+cv2.destroyAllWindows()
 

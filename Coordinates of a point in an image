@@ -1,4 +1,4 @@
-
+import cv2
 
 def click_event(event, x, y, flags, param):
     if event == cv2.EVENT_LBUTTONDOWN:

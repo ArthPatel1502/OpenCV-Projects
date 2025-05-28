@@ -1,1 +1,65 @@
-import 
+import cv2
+import mediapipe as mp
+
+m = mp.solutions.hands
+d = mp.solutions.drawing_utils
+h = m.Hands(max_num_hands=2, min_detection_confidence=0.7)
+c = cv2.VideoCapture(0)
+t = [4, 8, 12, 16, 20]
+
+def f(hand, l):
+    s = 0
+    if l == "Right":
+        if hand.landmark[t[0]].x < hand.landmark[t[0] - 1].x:
+            s += 1
+    else:
+        if hand.landmark[t[0]].x > hand.landmark[t[0] - 1].x:
+            s += 1
+    for i in range(1, 5):
+        if hand.landmark[t[i]].y < hand.landmark[t[i] - 2].y:
+            s += 1
+    return s
+
+while True:
+    r, fme = c.read()
+    fme = cv2.flip(fme, 1)
+    H, W, _ = fme.shape
+    rgb = cv2.cvtColor(fme, cv2.COLOR_BGR2RGB)
+    res = h.process(rgb)
+
+    S = 0
+    p = []
+    P = 20
+
+    if res.multi_hand_landmarks and res.multi_handedness:
+        for hand_landmarks, hand_label in zip(res.multi_hand_landmarks, res.multi_handedness):
+            d.draw_landmarks(fme, hand_landmarks, m.HAND_CONNECTIONS)
+
+            x = [lm.x for lm in hand_landmarks.landmark]
+            y = [lm.y for lm in hand_landmarks.landmark]
+
+            x_min, x_max = int(min(x)*W), int(max(x)*W)
+            y_min, y_max = int(min(y)*H), int(max(y)*H)
+
+            cv2.rectangle(fme, (x_min - P, y_min - P), (x_max + P, y_max + P), (0,255,0), 2)
+
+            l = hand_label.classification[0].label
+            cnt = f(hand_landmarks, l)
+            S += cnt
+
+            p.append((x_min, y_max, cnt))
+
+    S = min(S, 10)
+    rx, ry, rw, rh = 10, 10, 150, 70
+    cv2.rectangle(fme, (rx, ry), (rx+rw, ry+rh), (0,255,0), -1)
+    cv2.putText(fme, str(S), (rx+60, ry+50), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,0,0), 3)
+
+    for (X, Y, C) in p:
+        cv2.rectangle(fme, (X - P, Y + P), (X + 100, Y + 70), (0,255,0), -1)
+        cv2.putText(fme, str(C), (X - P + 30, Y + 55), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0,0,0), 3)
+
+    cv2.imshow("Finger Count", fme)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+
